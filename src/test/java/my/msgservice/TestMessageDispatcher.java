@@ -6,6 +6,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
@@ -16,6 +18,8 @@ import org.mockito.runners.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 @SuppressWarnings("unchecked")
 public class TestMessageDispatcher {
+
+    ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
     MessageDispatcher<String> messageDispatcher;
     MessageReceiver<String> foo, bar;
@@ -46,7 +50,7 @@ public class TestMessageDispatcher {
         messageDispatcher.send("Hello", foo, bar, delay, TimeUnit.MILLISECONDS);
 
         // call sendPending after delay -> should dispatch message!
-        triggerSendPending(delay);
+        executor.schedule(new SendPending(), delay, TimeUnit.MILLISECONDS);
 
         // message should not have been dispatched yet!
         verify(bar, never()).handleMessage(any(String.class), any());
@@ -66,7 +70,7 @@ public class TestMessageDispatcher {
         }
 
         // call sendPending after delay -> should dispatch messages!
-        triggerSendPending(delay);
+        executor.schedule(new SendPending(), delay, TimeUnit.MILLISECONDS);
 
         // messages should not have been dispatched yet!
         verify(bar, never()).handleMessage(any(String.class), any());
@@ -83,7 +87,7 @@ public class TestMessageDispatcher {
         messageDispatcher.send("Hello", foo, bar, delay * 2, TimeUnit.MILLISECONDS);
 
         // call sendPending after delay -> should dispatch message!
-        triggerSendPending(delay);
+        executor.schedule(new SendPending(), delay, TimeUnit.MILLISECONDS);
 
         // message should NOT have been dispatched within 'delay'.
         verify(bar, timeout(delay).never()).handleMessage(any(String.class), any());
@@ -101,28 +105,15 @@ public class TestMessageDispatcher {
         verify(bar, timeout(1000).times(times)).handleMessage("Hello", foo);
     }
 
-    private void sleep(long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (Exception x) {
-            // Oops
-        }
-    }
-
     /**
-     * This method will call MessageDispatcher.sendPending after a delay.
-     *
-     * @private
+     * Send pending messages
      */
-    private void triggerSendPending(final long delay) {
-        new Thread(new Runnable() {
+    private class SendPending implements Runnable {
+        @Override
+        public void run() {
+            messageDispatcher.sendPendingMessages();
+        }
 
-            @Override
-            public void run() {
-                sleep(delay);
-                messageDispatcher.sendPendingMessages();
-            }
-
-        }).start();
     }
+
 }
