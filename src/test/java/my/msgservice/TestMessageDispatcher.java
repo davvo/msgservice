@@ -19,7 +19,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 @SuppressWarnings("unchecked")
 public class TestMessageDispatcher {
 
-    ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+    static ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
     MessageDispatcher<String> messageDispatcher;
     MessageReceiver<String> foo, bar;
@@ -50,7 +50,7 @@ public class TestMessageDispatcher {
         messageDispatcher.send("Hello", foo, bar, delay, TimeUnit.MILLISECONDS);
 
         // call sendPending after delay -> should dispatch message!
-        executor.schedule(new SendPending(), delay, TimeUnit.MILLISECONDS);
+        sendPending(delay);
 
         // message should not have been dispatched yet!
         verify(bar, never()).handleMessage(any(String.class), any());
@@ -61,7 +61,7 @@ public class TestMessageDispatcher {
 
     @Test
     public void testSendDelayedMulti() {
-        int delay = 1000;
+        int delay = 100;
         int times = 10;
 
         // send delayed message
@@ -70,7 +70,7 @@ public class TestMessageDispatcher {
         }
 
         // call sendPending after delay -> should dispatch messages!
-        executor.schedule(new SendPending(), delay, TimeUnit.MILLISECONDS);
+        sendPending(delay);
 
         // messages should not have been dispatched yet!
         verify(bar, never()).handleMessage(any(String.class), any());
@@ -87,7 +87,7 @@ public class TestMessageDispatcher {
         messageDispatcher.send("Hello", foo, bar, delay * 2, TimeUnit.MILLISECONDS);
 
         // call sendPending after delay -> should dispatch message!
-        executor.schedule(new SendPending(), delay, TimeUnit.MILLISECONDS);
+        sendPending(delay);
 
         // message should NOT have been dispatched within 'delay'.
         verify(bar, timeout(delay).never()).handleMessage(any(String.class), any());
@@ -96,24 +96,23 @@ public class TestMessageDispatcher {
     @Test
     public void testAutoDispatch() {
         messageDispatcher.setAutoDispatch(true);
+        int delay = 100;
         int times = 10;
 
         for (int i = 0; i < times; ++i) {
-            messageDispatcher.send("Hello", foo, bar, i * 100, TimeUnit.MILLISECONDS);
+            messageDispatcher.send("Hello", foo, bar, i * delay, TimeUnit.MILLISECONDS);
         }
 
-        verify(bar, timeout(1000).times(times)).handleMessage("Hello", foo);
+        verify(bar, timeout(times * delay).times(times)).handleMessage("Hello", foo);
     }
 
-    /**
-     * Send pending messages
-     */
-    private class SendPending implements Runnable {
-        @Override
-        public void run() {
-            messageDispatcher.sendPendingMessages();
-        }
-
+    private void sendPending(long millis) {
+        executor.schedule(new Runnable() {
+            @Override
+            public void run() {
+                messageDispatcher.sendPendingMessages();
+            }
+        }, millis, TimeUnit.MILLISECONDS);
     }
 
 }
