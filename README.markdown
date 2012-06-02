@@ -15,7 +15,7 @@
 
 **Start sending messages**
 
-    MessageDispatcher<String> messageDispatcher = new MessageDispatcher<String>(true);
+    MessageDispatcher messageDispatcher = new MessageDispatcher(true);
     MyMessageReceiver receiver = new MyMessageReceiver();
     ...
     messageDispatcher.send("Hello", this, receiver);
