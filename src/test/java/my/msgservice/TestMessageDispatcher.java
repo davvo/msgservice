@@ -95,10 +95,10 @@ public class TestMessageDispatcher {
         int times = 10;
 
         for (int i = 0; i < times; ++i) {
-            messageDispatcher.send("Hello", foo, bar, 100, TimeUnit.MILLISECONDS);
+            messageDispatcher.send("Hello", foo, bar, i * 100, TimeUnit.MILLISECONDS);
         }
 
-        sleep(5000);
+        verify(bar, timeout(1000).times(times)).handleMessage("Hello", foo);
     }
 
     private void sleep(long millis) {
