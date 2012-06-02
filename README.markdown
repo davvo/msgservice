@@ -19,3 +19,4 @@
     MyMessageReceiver receiver = new MyMessageReceiver();
     ...
     messageDispatcher.send("Hello", this, receiver);
+    messageDispatcher.send("Goodbye", this, receiver, 10, TimeUnit.SECONDS);
