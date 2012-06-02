@@ -11,44 +11,82 @@ import java.util.concurrent.TimeUnit;
  */
 public final class MessageDispatcher<V> {
 
+    /**
+     * The message queue
+     */
     private DelayQueue<DelayedMessage<V>> messageQueue = new DelayQueue<DelayedMessage<V>>();
 
-    private Thread poller;
+    /**
+     * Dispatcher thread that handles auto dispatch
+     */
+    private Dispatcher dispatcher;
+
+    /**
+     * Whether auto dispatch is turned on or off
+     */
     private volatile boolean autoDispatch;
 
+    /**
+     * Create a new MessageDispatcher. Same as {@code MessageDispatcher(false)}
+     */
     public MessageDispatcher() {
         this(false);
     }
 
+    /**
+     * Create a new MessageDispatcher.
+     * @param autoDispatch true if messages should be automatically dispatched when they expire, false otherwise.
+     * If false, delayed messages are dispatched by calling {@see sendPendingMessages}
+     */
     public MessageDispatcher(boolean autoDispatch) {
         setAutoDispatch(autoDispatch);
     }
 
+    /**
+     * @param autoDispatch true if messages should be automatically dispatched when expired, false otherwise.
+     */
     public void setAutoDispatch(boolean autoDispatch) {
         this.autoDispatch = autoDispatch;
-        if (autoDispatch && poller == null && !messageQueue.isEmpty()) {
-            poller = new Poller();
-            poller.start();
+        if (autoDispatch && dispatcher == null && !messageQueue.isEmpty()) {
+            dispatcher = new Dispatcher();
+            dispatcher.start();
         }
     }
 
+    /**
+     * Send a message immediately
+     * @param message the message
+     * @param sender the sender
+     * @param receiver the receiver
+     */
     public void send(V message, Object sender, MessageReceiver<V> receiver) {
         send(message, sender, receiver, 0, TimeUnit.NANOSECONDS);
     }
 
+    /**
+     * Enqueue a delayed message
+     * @param message the message
+     * @param sender the sender
+     * @param receiver the receiver
+     * @param delay how long before the message should be dispatched
+     * @param timeUnit the delay time unit
+     */
     public void send(V message, Object sender, MessageReceiver<V> receiver, long delay, TimeUnit timeUnit) {
         DelayedMessage<V> msg = new DelayedMessage<V>(message, sender, receiver, delay, timeUnit);
         if (delay <= 0) {
             msg.send();
         } else {
             messageQueue.offer(msg);
-            if (autoDispatch && poller == null) {
-                poller = new Poller();
-                poller.start();
+            if (autoDispatch && dispatcher == null) {
+                dispatcher = new Dispatcher();
+                dispatcher.start();
             }
         }
     }
 
+    /**
+     * Dispatch all expired messages
+     */
     public void sendPendingMessages() {
         DelayedMessage<V> msg = null;
         while ((msg = messageQueue.poll()) != null) {
@@ -56,7 +94,11 @@ public final class MessageDispatcher<V> {
         }
     }
 
-    private class Poller extends Thread {
+    /**
+     * Private dispatcher thread.
+     * Only lives as long as autoDispatch is true and there are messages in the message queue.
+     */
+    private class Dispatcher extends Thread {
 
         @Override
         public void run() {
@@ -69,7 +111,7 @@ public final class MessageDispatcher<V> {
                 } catch (InterruptedException e) {
                 }
             }
-            poller = null;
+            dispatcher = null;
         }
     }
 
