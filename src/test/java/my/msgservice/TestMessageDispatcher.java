@@ -86,7 +86,7 @@ public class TestMessageDispatcher {
         // send delayed message
         messageDispatcher.send("Hello", foo, bar, delay * 2, TimeUnit.MILLISECONDS);
 
-        // call sendPending after delay -> should dispatch message!
+        // call sendPending after delay -> should NOT dispatch message!
         sendPending(delay);
 
         // message should NOT have been dispatched within 'delay'.
