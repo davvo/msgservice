@@ -9,12 +9,12 @@ import java.util.concurrent.TimeUnit;
  * @author david
  *
  */
-public final class MessageDispatcher<V> {
+public final class MessageDispatcher {
 
     /**
      * The message queue
      */
-    private DelayQueue<DelayedMessage<V>> messageQueue = new DelayQueue<DelayedMessage<V>>();
+    private DelayQueue<DelayedMessage<?>> messageQueue = new DelayQueue<DelayedMessage<?>>();
 
     /**
      * Dispatcher thread that handles auto dispatch
@@ -59,7 +59,7 @@ public final class MessageDispatcher<V> {
      * @param sender the sender
      * @param receiver the receiver
      */
-    public void send(V message, Object sender, MessageReceiver<V> receiver) {
+    public <V> void send(V message, Object sender, MessageReceiver<V> receiver) {
         send(message, sender, receiver, 0, TimeUnit.NANOSECONDS);
     }
 
@@ -71,7 +71,7 @@ public final class MessageDispatcher<V> {
      * @param delay how long before the message should be dispatched
      * @param timeUnit the delay time unit
      */
-    public void send(V message, Object sender, MessageReceiver<V> receiver, long delay, TimeUnit timeUnit) {
+    public <V> void send(V message, Object sender, MessageReceiver<V> receiver, long delay, TimeUnit timeUnit) {
         DelayedMessage<V> msg = new DelayedMessage<V>(message, sender, receiver, delay, timeUnit);
         if (delay <= 0) {
             msg.send();
@@ -88,7 +88,7 @@ public final class MessageDispatcher<V> {
      * Dispatch all expired messages
      */
     public void sendPendingMessages() {
-        DelayedMessage<V> msg = null;
+        DelayedMessage<?> msg = null;
         while ((msg = messageQueue.poll()) != null) {
             msg.send();
         }
@@ -104,7 +104,7 @@ public final class MessageDispatcher<V> {
         public void run() {
             while (autoDispatch && !messageQueue.isEmpty()) {
                 try {
-                    DelayedMessage<V> msg = messageQueue.poll(1, TimeUnit.SECONDS);
+                    DelayedMessage<?> msg = messageQueue.poll(1, TimeUnit.SECONDS);
                     if (msg != null) {
                         msg.send();
                     }

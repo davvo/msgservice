@@ -21,12 +21,12 @@ public class TestMessageDispatcher {
 
     static ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
-    MessageDispatcher<String> messageDispatcher;
+    MessageDispatcher messageDispatcher;
     MessageReceiver<String> foo, bar;
 
     @Before
     public void setUp() {
-        messageDispatcher = new MessageDispatcher<String>();
+        messageDispatcher = new MessageDispatcher();
         foo = mock(MessageReceiver.class);
         bar = mock(MessageReceiver.class);
     }
