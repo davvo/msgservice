@@ -1,5 +1,7 @@
 ## A simple java message dispatcher
 
+http://davvo.github.com/msgservice
+
 **Implement MessageReceiver**
     
     public class MyMessageReceiver implements MessageReceiver<String> {
